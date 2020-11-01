@@ -1,225 +1,240 @@
 <!DOCTYPE html>
 <html>
-
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title></title>
-    <meta name="description" content="">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="/styles.css">
-</head>
+    <meta name="description" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
 
-<body>
-    
+  <body>
     <!-- <div class="parent" id="parent"> -->
     <!-- <div class="canvas-container" contenteditable> -->
-        <canvas id="canvas" width='700px' height='700px'></canvas>
+    <canvas id="canvas" width="700px" height="700px"></canvas>
     <!-- </div> -->
-    <div> 
-        <!-- <p>Iteration Limit</p>  -->
-        <input type="number" label="Max Iterations" value="120"><input></div>
+    <div>
+      <!-- <p>Iteration Limit</p>  -->
+      <input type="number" label="Max Iterations" value="120" /><input />
     </div>
     <script>
+      let canvas = document.getElementById("canvas");
+      let ctx = canvas.getContext("2d");
+      let width = canvas.width;
+      let height = canvas.height;
+      // canvas.width = width;
+      // canvas.height = height;
+      let max_iterations = 120;
+      let scale = 1;
 
-        let canvas = document.getElementById('canvas');
-        let ctx = canvas.getContext('2d');
-        let width = canvas.width;
-        let height = canvas.height;
-        // canvas.width = width;
-        // canvas.height = height;
-        let max_iterations = 120
-        let scale = 1.
+      // let re_scale = 1.
+      // let im_scale = 1.
 
-        // let re_scale = 1.
-        // let im_scale = 1.
+      let g_min_re = -2.0;
+      let g_max_re = 1.0;
 
-        let g_min_re = -2.0
-        let g_max_re = 1.0
+      let g_min_im = -1.2;
+      let g_max_im = g_min_im + (g_max_re - g_min_re) * (height / width);
+      let g_re_factor = (g_max_re - g_min_re) / (width - 1);
+      let g_im_factor = (g_max_im - g_min_im) / (height - 1);
+      let cache = {};
+      let offset_re = 0;
+      let offset_im = 0;
 
-        let g_min_im = -1.2
-        let g_max_im = g_min_im + (g_max_re - g_min_re) * (height / width)
-        let g_re_factor = (g_max_re - g_min_re) / (width - 1)
-        let g_im_factor = (g_max_im - g_min_im) / (height - 1)
-
-        let offset_re = 0
-        let offset_im = 0
-
-        let colorBank = {};
-        let get_depth_color = (depth) => {
-            switch (depth) {
-                case (0):
-                    return 'black'
-                case (1):
-                    return 'black'
-                default:
-                    if (colorBank[depth]) {
-                        return colorBank[depth];
-                    }
-                    let r = (255 * 0.5 * Math.tan((depth) + 0.3)) & 255
-                    let g = (255 * (Math.tan((depth) + 0.2))) & 255
-                    let b = (255 * (Math.tan((depth) + (Math.cos(depth))))) & 255
-                    let color = { r, g, b };
-                    colorBank[depth] = color;
-                    return color
+      let colorBank = {};
+      let get_depth_color = depth => {
+        switch (depth) {
+          case 0:
+            return "black";
+          case 1:
+            return "black";
+          default:
+            if (colorBank[depth]) {
+              return colorBank[depth];
             }
+            let r = (255 * 0.5 * Math.cos(depth + 0.3)) & 255;
+            let g = (255 * Math.cos(depth + 0.2)) & 255;
+            let b = (255 * Math.sin(depth + Math.tan(depth))) & 255;
+            let color = { r, g, b };
+            colorBank[depth] = color;
+            return color;
         }
+      };
 
-        let mandelbrot = (c_re, c_im, z_re, z_im, iterations = 0) => {
-            if (iterations > max_iterations) {
-                return iterations;
-            }
-            let z_re_2 = z_re ** 2.;
-            let z_im_2 = z_im ** 2.
-            if ((z_re_2 + z_im_2) > 4.) {
-                return iterations;
-            }
-            let new_z_re = z_re_2 - z_im_2 + c_re
-            let new_z_im = (2. * z_re * z_im) + c_im
-            return mandelbrot(c_re, c_im, new_z_re, new_z_im, iterations = iterations + 1)
+      //         let mandelbrot = (c_re, c_im, z_re, z_im, iterations = 0) => {
+      //           let im_key = c_im.toString()
+      //           let re_key = c_re.toString()
+      //           if(cache[re_key] !== undefined
+      //              && cache[re_key][im_key] !== undefined
+      //              && cache[re_key][im_key].value < cache[c_re][c_im].max ) {
+      //             return cache[re_key][im_key].value ;
+      //           }
+      //           if(!cache[re_key]) {
+      //             cache[re_key] = {im_key : {}}
+      //           }
+      //           if(!cache[re_key][im_key]) {
+      //             cache[re_key][im_key] = {value: null, max:null}
+      //           }
+      //           let res = mandelbrot_helper(c_re, c_im, z_re, z_im,iterations)
+      //           cache[re_key][im_key].value = res;
+      //           cache[re_key][im_key].max = max_iterations;
+      //           return res;
+
+      //         }
+
+      let mandelbrot = (c_re, c_im, z_re, z_im, iterations = 0) => {
+        if (iterations > max_iterations) {
+          return iterations;
         }
-
-        let draw_mandelbrot = (ctx, height, width) => {
-
-            var imageData = ctx.getImageData(0, 0, width, height);
-            var buf = new ArrayBuffer(imageData.data.length);
-            var buf8 = new Uint8ClampedArray(buf);
-            var data = new Uint32Array(buf);
-
-            let min_re = (g_min_re + offset_re) * scale
-            let max_re = (g_max_re + offset_re) * scale
-            let min_im = (g_min_im + offset_im) * scale
-            let max_im = min_im + (max_re - min_re) * ((height / width) * scale)
-
-            let re_factor = (max_re - min_re) / (width - 1)
-            let im_factor = (max_im - min_im) / ((height - 1))
-
-            for (let y = 0; y < (width); ++y) {
-                let c_im = max_im - (y * im_factor);
-                for (let x = 0; x < (height - 1); ++x) {
-                    // var index = (y * width + x) * 4;
-
-                    let c_re = min_re + (x * re_factor);
-                    let z_re = c_re;
-                    let z_im = c_im;
-                    let depth = mandelbrot(c_re, c_im, z_re, z_im)
-                    let { r, g, b } = get_depth_color(depth)
-                    data[y * width + x] =
-                        (255 << 24) |	// alpha
-                        (b << 16) |	// blue
-                        (g << 8) |	// green
-                        r;		// red
-                }
-            }
-            imageData.data.set(buf8);
-            ctx.putImageData(imageData, 0, 0);
+        let z_re_2 = z_re ** 2;
+        let z_im_2 = z_im ** 2;
+        if (z_re_2 + z_im_2 > 4) {
+          return iterations;
         }
-        // console.log("Here")
-        draw_mandelbrot(ctx, height, width);
-        // console.log("drawn")
+        let new_z_re = z_re_2 - z_im_2 + c_re;
+        let new_z_im = 2 * z_re * z_im + c_im;
+        return mandelbrot(
+          c_re,
+          c_im,
+          new_z_re,
+          new_z_im,
+          (iterations = iterations + 1)
+        );
+      };
 
-        // window.onresize = () => {
-        //     width = window.innerWidth;
-        //     height = window.innerHeight;
-        //     canvas.width = width;
-        //     canvas.height = height;
-        //     draw_mandelbrot(ctx, height, width);
-        // }
+      let draw_mandelbrot = (ctx, height, width) => {
+        console.log("draw", max_iterations);
+        var imageData = ctx.getImageData(0, 0, width, height);
+        var buf = new ArrayBuffer(imageData.data.length);
+        var buf8 = new Uint8ClampedArray(buf);
+        var data = new Uint32Array(buf);
 
-        var clicked = false;
-        var last_x = null;
-        var last_y = null;
-        canvas.onmousedown = (e) => {
-            clicked = true;
-            last_x = e.offsetX;
-            last_y = e.offsetY;
+        let min_re = (g_min_re + offset_re) * scale;
+        let max_re = (g_max_re + offset_re) * scale;
+        let min_im = (g_min_im + offset_im) * scale;
+        let max_im = min_im + (max_re - min_re) * ((height / width) * scale);
+
+        let re_factor = (max_re - min_re) / (width - 1);
+        let im_factor = (max_im - min_im) / (height - 1);
+
+        for (let y = 0; y < width; ++y) {
+          let c_im = max_im - y * im_factor;
+          for (let x = 0; x < height; ++x) {
+            // var index = (y * width + x) * 4;
+            let c_re = min_re + x * re_factor;
+            let z_re = c_re;
+            let z_im = c_im;
+            let depth = mandelbrot(c_re, c_im, z_re, z_im);
+            let { r, g, b } = get_depth_color(depth);
+            data[y * width + x] =
+              (255 << 24) | // alpha
+              (b << 16) | // blue
+              (g << 8) | // green
+              r; // red
+          }
         }
-        canvas.onmouseup = () => {
-            clicked = false;
-        }
+        imageData.data.set(buf8);
+        ctx.putImageData(imageData, 0, 0);
+      };
+      // console.log("Here")
+      draw_mandelbrot(ctx, height, width);
 
-        canvas.onmousemove = (e) => {
-            if (!clicked) {
-                return;
-            }
-            let new_x = e.offsetX;
-            let new_y = e.offsetY;
-            console.log((new_x - last_x))
-            offset_re += (last_x - new_x) * 0.01;
-            offset_im += (new_y - last_y) * 0.01;
-            console.log(offset_re, offset_im)
-            last_x = new_x;
-            last_y = new_y;
+      var clicked = false;
+      var last_x = null;
+      var last_y = null;
+      canvas.onmousedown = e => {
+        clicked = true;
+        last_x = e.offsetX;
+        last_y = e.offsetY;
+      };
+      canvas.onmouseup = () => {
+        let new_x = e.offsetX;
+        let new_y = e.offsetY;
+
+        clicked = false;
+      };
+
+      canvas.onmousemove = e => {
+        if (!clicked) {
+          return;
+        }
+        let new_x = e.offsetX;
+        let new_y = e.offsetY;
+
+        console.log(new_x - last_x);
+        offset_re += (last_x - new_x) * 0.01;
+        offset_im += (new_y - last_y) * 0.01;
+        console.log(offset_re, offset_im);
+        last_x = new_x;
+        last_y = new_y;
+        draw_mandelbrot(ctx, width, height);
+      };
+      window.onkeydown = e => {
+        e = e || window.event;
+
+        var offsetDifferential = 0.01 * scale;
+
+        if (e.keyCode == "38") {
+          offset_re += offsetDifferential;
+          draw_mandelbrot(ctx, width, height);
+          // up arrow
+        } else if (e.keyCode == "40") {
+          // down arrow
+          offset_re -= offsetDifferential;
+          draw_mandelbrot(ctx, width, height);
+        } else if (e.keyCode == "37") {
+          offset_im -= offsetDifferential;
+          draw_mandelbrot(ctx, width, height);
+          // left arrow
+        } else if (e.keyCode == "39") {
+          offset_im -= offsetDifferential;
+          draw_mandelbrot(ctx, width, height);
+          // right arrow
+        } else if (e.keyCode === 32) {
+          scale -= 0.02;
+          draw_mandelbrot(ctx, width, height);
+        } else if (e.keyCode === 16) {
+          scale += 0.02;
+          draw_mandelbrot(ctx, width, height);
+        } else if (e.keyCode === 82) {
+          scale = 1;
+          offset_re = 0;
+          offset_im = 0;
+          draw_mandelbrot(ctx, width, height);
+        }
+      };
+
+      let last_known_scroll_position = 0;
+      let ticking = false;
+
+      window.addEventListener("wheel", function(e) {
+        if (!ticking) {
+          window.requestAnimationFrame(function() {
+            scale += e.deltaY * 0.05;
+            ticking = false;
             draw_mandelbrot(ctx, width, height);
+          });
+
+          ticking = true;
         }
-        window.onkeydown = (e) => {
+      });
 
-            e = e || window.event;
-
-            var offsetDifferential = 0.01  * scale
-
-            if (e.keyCode == '38') {
-                offset_re += offsetDifferential;
-                draw_mandelbrot(ctx, width, height);
-                // up arrow
-            } else if (e.keyCode == '40') {
-                // down arrow
-                offset_re -= offsetDifferential;
-                draw_mandelbrot(ctx, width, height);
-            } else if (e.keyCode == '37') {
-                offset_im -= offsetDifferential;
-                draw_mandelbrot(ctx, width, height);
-                // left arrow
-            } else if (e.keyCode == '39') {
-                offset_im -= offsetDifferential;
-                draw_mandelbrot(ctx, width, height);
-                // right arrow
-            } else if (e.keyCode === 32) {
-                scale -= 0.02
-                draw_mandelbrot(ctx, width, height);
-            } else if (e.keyCode === 16) {
-                scale += 0.02
-                draw_mandelbrot(ctx, width, height);
-            } else if (e.keyCode === 82) {
-                scale = 1.
-                offset_re = 0.
-                offset_im = 0.
-                draw_mandelbrot(ctx, width, height);
-            }
+      let changeMaxIterations = e => {
+        // console. tlog("changeMaxIterations", e, e.target.value)
+        let new_max = parseInt(e.target.value);
+        if (new_max < 1300 && new_max > 0) {
+          if (new_max > max_iterations) {
+            max_iterations = new_max;
+            draw_mandelbrot(ctx, width, height);
+          } else {
+            draw_mandelbrot(ctx, width, height);
+          }
         }
-
-        let last_known_scroll_position = 0;
-        let ticking = false;
-
-        window.addEventListener('wheel', function (e) {
-            if (!ticking) {
-                window.requestAnimationFrame(function () {
-                    scale += (e.deltaY *  0.05)
-                    ticking = false;
-                    draw_mandelbrot(ctx, width, height);
-                });
-
-                ticking = true;
-            }
-        });
-
-        let changeMaxIterations = (e) => {
-            // console.log("changeMaxIterations", e)
-            let new_max = parseInt(e.data);
-            if (new_max < 1300 && new_max > 0) {
-                if(new_max > max_iterations) {
-                    max_iterations = new_max;
-                    draw_mandelbrot(ctx, width, height);
-                } else {
-                    draw_mandelbrot(ctx, width, height);
-                }
-                // console.log(max_iterations)
-            }
-        }
-        const input = document.querySelector('input');
-        input.addEventListener('input', changeMaxIterations);
-        const log = document.getElementById('values');
+      };
+      const input = document.querySelector("input");
+      input.addEventListener("input", changeMaxIterations);
+      const log = document.getElementById("values");
     </script>
-</body>
-
+  </body>
 </html>
