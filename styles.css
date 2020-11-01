@@ -1,0 +1,20 @@
+body {
+    margin: 0px;
+    padding: 0px;
+    background-color: #00000F;
+  }
+  .parent {
+      
+    display: grid;
+    grid-template-columns: minmax(150px, 25%) 1fr;
+  }
+  canvas {
+    padding: 0;
+    margin: auto;
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
