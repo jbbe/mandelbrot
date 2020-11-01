@@ -26,21 +26,32 @@
       // canvas.width = width;
       // canvas.height = height;
       let max_iterations = 120;
-      let scale = 1;
+    //   let scale = 1;
 
       // let re_scale = 1.
       // let im_scale = 1.
 
-      let g_min_re = -2.0;
-      let g_max_re = 1.0;
+      let min_re ;
+      let max_re ;
 
-      let g_min_im = -1.2;
-      let g_max_im = g_min_im + (g_max_re - g_min_re) * (height / width);
-      let g_re_factor = (g_max_re - g_min_re) / (width - 1);
-      let g_im_factor = (g_max_im - g_min_im) / (height - 1);
+      let min_im ;
+      let max_im ;
+      let re_factor;
+      let im_factor; 
+        resetScale = () => {
+            min_re = -2.0;
+            max_re = 1.0;
+
+            min_im = -1.2;
+            max_im = min_im + (max_re - min_re) * (height / width);
+            re_factor = (max_re - min_re) / (width - 1);
+            im_factor = (max_im - min_im) / (height - 1);
+        }
       let cache = {};
-      let offset_re = 0;
-      let offset_im = 0;
+
+      let last_render_iterations = max_iterations;
+    //   let offset_re = 0;
+    //   let offset_im = 0;
 
       let colorBank = {};
       let get_depth_color = depth => {
@@ -105,18 +116,19 @@
 
       let draw_mandelbrot = (ctx, height, width) => {
         console.log("draw", max_iterations);
+        last_render_iterations = max_iterations;
         var imageData = ctx.getImageData(0, 0, width, height);
         var buf = new ArrayBuffer(imageData.data.length);
         var buf8 = new Uint8ClampedArray(buf);
         var data = new Uint32Array(buf);
 
-        let min_re = (g_min_re + offset_re) * scale;
-        let max_re = (g_max_re + offset_re) * scale;
-        let min_im = (g_min_im + offset_im) * scale;
-        let max_im = min_im + (max_re - min_re) * ((height / width) * scale);
+        // let min_re = (g_min_re + offset_re) * scale;
+        // let max_re = (g_max_re + offset_re) * scale;
+        // let min_im = (g_min_im + offset_im) * scale;
+        // let max_im = min_im + (max_re - min_re) * ((height / width) * scale);
 
-        let re_factor = (max_re - min_re) / (width - 1);
-        let im_factor = (max_im - min_im) / (height - 1);
+        // let re_factor = (max_re - min_re) / (width - 1);
+        // let im_factor = (max_im - min_im) / (height - 1);
 
         for (let y = 0; y < width; ++y) {
           let c_im = max_im - y * im_factor;
@@ -139,93 +151,116 @@
       };
       // console.log("Here")
       draw_mandelbrot(ctx, height, width);
-
       var clicked = false;
-      var last_x = null;
-      var last_y = null;
-      canvas.onmousedown = e => {
-        clicked = true;
-        last_x = e.offsetX;
-        last_y = e.offsetY;
-      };
-      canvas.onmouseup = () => {
-        let new_x = e.offsetX;
-        let new_y = e.offsetY;
+      var start_x = null;
+      var start_y = null;
+      var last_rect = null;
 
-        clicked = false;
+      canvas.onmousedown = e => {
+        console.log("Mouse down");
+        clicked = true;
+        start_x = e.offsetX;
+        start_y = e.offsetY;
+      };
+
+      canvas.onmouseup = (e) => {
+          clicked = false;
+        let end_x = e.offsetX;
+        let end_y = e.offsetY;
+        if(Math.abs(end_x - start_x) < 2 || Math.abs(end_y - start_y) < 2) {
+            return;
+        }
+
+        let start_im = max_im - start_y * im_factor;
+        let start_re = min_re + start_x * re_factor;
+
+        let end_im = max_im - end_y * im_factor;
+        let end_re = min_re + end_x * re_factor;
+        
+        if(start_im > end_im) {
+            min_im = end_im;
+            max_im = start_im;
+        } else {
+            min_im = start_im;
+            max_im = end_im;
+        }
+        if(start_re > end_re) {
+            min_re = end_re;
+            max_re = start_re;
+        } else {
+            min_re = start_re;
+            max_re = end_re;
+        }
+        re_factor = (max_re - min_re) / (width - 1);
+        im_factor = (max_im - min_im) / (height - 1);
+        draw_mandelbrot(ctx, height, width);
+        star_x = null;
+        start_y = null;
+
       };
 
       canvas.onmousemove = e => {
-        if (!clicked) {
-          return;
+        if(!clicked) {
+            return false;
         }
-        let new_x = e.offsetX;
-        let new_y = e.offsetY;
+        let cur_x = e.offsetX;
+        let cur_y = e.offsetY;
+        last_rect = {x1:start_x, y1:start_y,x2:cur_y, y2:cur_x}
 
-        console.log(new_x - last_x);
-        offset_re += (last_x - new_x) * 0.01;
-        offset_im += (new_y - last_y) * 0.01;
-        console.log(offset_re, offset_im);
-        last_x = new_x;
-        last_y = new_y;
-        draw_mandelbrot(ctx, width, height);
+        ctx.beginPath();
+        ctx.lineWidth = "4";
+        ctx.rect(start_x, start_y, cur_y, cur_x);
+        ctx.stroke();
+        last_rect = {x1:start_x, y1:start_y,x2:cur_x, y2:cur_y}
+        // if (!clicked) {
+        //   return;
+        // }
+        // let new_x = e.offsetX;
+        // let new_y = e.offsetY;
+
+        // console.log(new_x - last_x);
+        // offset_re += (last_x - new_x) * 0.01;
+        // offset_im += (new_y - last_y) * 0.01;
+        // console.log(offset_re, offset_im);
+        // last_x = new_x;
+        // last_y = new_y;
+        // draw_mandelbrot(ctx, width, height);
       };
       window.onkeydown = e => {
         e = e || window.event;
 
-        var offsetDifferential = 0.01 * scale;
+        // var offsetDifferential = 0.01 * scale;
 
-        if (e.keyCode == "38") {
-          offset_re += offsetDifferential;
-          draw_mandelbrot(ctx, width, height);
-          // up arrow
-        } else if (e.keyCode == "40") {
-          // down arrow
-          offset_re -= offsetDifferential;
-          draw_mandelbrot(ctx, width, height);
-        } else if (e.keyCode == "37") {
-          offset_im -= offsetDifferential;
-          draw_mandelbrot(ctx, width, height);
-          // left arrow
-        } else if (e.keyCode == "39") {
-          offset_im -= offsetDifferential;
-          draw_mandelbrot(ctx, width, height);
-          // right arrow
-        } else if (e.keyCode === 32) {
-          scale -= 0.02;
-          draw_mandelbrot(ctx, width, height);
-        } else if (e.keyCode === 16) {
-          scale += 0.02;
-          draw_mandelbrot(ctx, width, height);
-        } else if (e.keyCode === 82) {
-          scale = 1;
-          offset_re = 0;
-          offset_im = 0;
+      if (e.keyCode === 82) { // r
+        //   scale = 1;
+        //   offset_re = 0;
+        //   offset_im = 0;
+            resetScale()
           draw_mandelbrot(ctx, width, height);
         }
       };
 
-      let last_known_scroll_position = 0;
-      let ticking = false;
+    //   let last_known_scroll_position = 0;
+    //   let ticking = false;
 
-      window.addEventListener("wheel", function(e) {
-        if (!ticking) {
-          window.requestAnimationFrame(function() {
-            scale += e.deltaY * 0.05;
-            ticking = false;
-            draw_mandelbrot(ctx, width, height);
-          });
+    //   window.addEventListener("wheel", function(e) {
+    //     if (!ticking) {
+    //       window.requestAnimationFrame(function() {
+    //         scale += e.deltaY * 0.05;
+    //         ticking = false;
+    //         draw_mandelbrot(ctx, width, height);
+    //       });
 
-          ticking = true;
-        }
-      });
+    //       ticking = true;
+    //     }
+    //   });
 
       let changeMaxIterations = e => {
         // console. tlog("changeMaxIterations", e, e.target.value)
         let new_max = parseInt(e.target.value);
-        if (new_max < 1300 && new_max > 0) {
-          if (new_max > max_iterations) {
-            max_iterations = new_max;
+        if (new_max < 3000 && new_max > 0) {
+          max_iterations = new_max;
+          if (new_max > last_render_iterations) {
             draw_mandelbrot(ctx, width, height);
           } else {
             draw_mandelbrot(ctx, width, height);
