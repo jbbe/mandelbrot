@@ -11,16 +11,22 @@
 
   <body>
     <!-- <div class="parent" id="parent"> -->
-    <!-- <div class="canvas-container" contenteditable> -->
-    <canvas id="canvas" width="700px" height="700px"></canvas>
-    <!-- </div> -->
+    <div class="stack" >
+    <canvas id="canvas" width="700px" height="700px" style="z-index:1;"></canvas>
+    <!-- <canvas id="canvas2" width="700px" height="700px" style="z-index:2;margin-top:-220px;" > -->
+    </div>
     <div>
       <!-- <p>Iteration Limit</p>  -->
-      <input type="number" label="Max Iterations" value="120" /><input />
+      <!-- <input type="number" label="Max Iterations" value="120" /> -->
+      <div class="slidecontainer">
+        <input type="range" min="1" max="1500" value="150" class="slider" id="myRange">
+      </div>
     </div>
     <script>
       let canvas = document.getElementById("canvas");
+      let overlay = document.getElementById("canvas2");
       let ctx = canvas.getContext("2d");
+    //   let overlay_ctx = overlay.getContext("2d")
       let width = canvas.width;
       let height = canvas.height;
       // canvas.width = width;
@@ -47,6 +53,7 @@
             re_factor = (max_re - min_re) / (width - 1);
             im_factor = (max_im - min_im) / (height - 1);
         }
+        resetScale();
       let cache = {};
 
       let last_render_iterations = max_iterations;
@@ -57,8 +64,6 @@
       let get_depth_color = depth => {
         switch (depth) {
           case 0:
-            return "black";
-          case 1:
             return "black";
           default:
             if (colorBank[depth]) {
@@ -157,6 +162,7 @@
       var last_rect = null;
 
       canvas.onmousedown = e => {
+          ticker = 0;
         console.log("Mouse down");
         clicked = true;
         start_x = e.offsetX;
@@ -198,20 +204,25 @@
         start_y = null;
 
       };
-
+      let ticker = 0;
       canvas.onmousemove = e => {
         if(!clicked) {
             return false;
         }
+        if(ticker < 3) {
+            ticker++;
+            return;
+        }
+        ticker = 0;
         let cur_x = e.offsetX;
         let cur_y = e.offsetY;
-        last_rect = {x1:start_x, y1:start_y,x2:cur_y, y2:cur_x}
-
+        let w =  cur_x - start_x;
+        let h = cur_y - start_y;
         ctx.beginPath();
         ctx.lineWidth = "4";
-        ctx.rect(start_x, start_y, cur_y, cur_x);
+        ctx.rect(start_x, start_y, w, h);
         ctx.stroke();
-        last_rect = {x1:start_x, y1:start_y,x2:cur_x, y2:cur_y}
+        last_rect = {x1:start_x, y1:start_y, width:w, height:h}
         // if (!clicked) {
         //   return;
         // }
