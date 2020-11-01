@@ -11,21 +11,23 @@
 </head>
 
 <body>
-    <div class="parent">
+    
+    <!-- <div class="parent" id="parent"> -->
     <!-- <div class="canvas-container" contenteditable> -->
-        <canvas id="canvas"></canvas>
+        <canvas id="canvas" width='700px' height='700px'></canvas>
     <!-- </div> -->
     <div> 
-        <p>Iteration Limit</p> <input type="number" label="Max Iterations"><input></div>
-</div>
+        <!-- <p>Iteration Limit</p>  -->
+        <input type="number" label="Max Iterations" value="120"><input></div>
+    </div>
     <script>
 
         let canvas = document.getElementById('canvas');
         let ctx = canvas.getContext('2d');
-        let width = window.innerWidth;
-        let height = window.innerHeight;
-        canvas.width = width;
-        canvas.height = height;
+        let width = canvas.width;
+        let height = canvas.height;
+        // canvas.width = width;
+        // canvas.height = height;
         let max_iterations = 120
         let scale = 1.
 
@@ -55,7 +57,7 @@
                         return colorBank[depth];
                     }
                     let r = (255 * 0.5 * Math.tan((depth) + 0.3)) & 255
-                    let g = (255 * (Math.sin((depth) + 0.2))) & 255
+                    let g = (255 * (Math.tan((depth) + 0.2))) & 255
                     let b = (255 * (Math.tan((depth) + (Math.cos(depth))))) & 255
                     let color = { r, g, b };
                     colorBank[depth] = color;
@@ -63,7 +65,6 @@
             }
         }
 
-        console.log("ere")
         let mandelbrot = (c_re, c_im, z_re, z_im, iterations = 0) => {
             if (iterations > max_iterations) {
                 return iterations;
@@ -117,13 +118,13 @@
         draw_mandelbrot(ctx, height, width);
         // console.log("drawn")
 
-        window.onresize = () => {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-            draw_mandelbrot(ctx, height, width);
-        }
+        // window.onresize = () => {
+        //     width = window.innerWidth;
+        //     height = window.innerHeight;
+        //     canvas.width = width;
+        //     canvas.height = height;
+        //     draw_mandelbrot(ctx, height, width);
+        // }
 
         var clicked = false;
         var last_x = null;
@@ -161,28 +162,28 @@
                 offset_re += offsetDifferential;
                 draw_mandelbrot(ctx, width, height);
                 // up arrow
-            }
-            else if (e.keyCode == '40') {
+            } else if (e.keyCode == '40') {
                 // down arrow
                 offset_re -= offsetDifferential;
                 draw_mandelbrot(ctx, width, height);
-            }
-            else if (e.keyCode == '37') {
+            } else if (e.keyCode == '37') {
                 offset_im -= offsetDifferential;
                 draw_mandelbrot(ctx, width, height);
                 // left arrow
-            }
-            else if (e.keyCode == '39') {
+            } else if (e.keyCode == '39') {
                 offset_im -= offsetDifferential;
                 draw_mandelbrot(ctx, width, height);
                 // right arrow
-            }
-            else if (e.keyCode === 32) {
+            } else if (e.keyCode === 32) {
                 scale -= 0.02
                 draw_mandelbrot(ctx, width, height);
-            }
-            else if (e.keyCode === 16) {
+            } else if (e.keyCode === 16) {
                 scale += 0.02
+                draw_mandelbrot(ctx, width, height);
+            } else if (e.keyCode === 82) {
+                scale = 1.
+                offset_re = 0.
+                offset_im = 0.
                 draw_mandelbrot(ctx, width, height);
             }
         }
@@ -203,8 +204,16 @@
         });
 
         let changeMaxIterations = (e) => {
-            if (e.value < 1000 && e.value > 0) {
-                max_iterations = parseInt(e.value)
+            // console.log("changeMaxIterations", e)
+            let new_max = parseInt(e.data);
+            if (new_max < 1300 && new_max > 0) {
+                if(new_max > max_iterations) {
+                    max_iterations = new_max;
+                    draw_mandelbrot(ctx, width, height);
+                } else {
+                    draw_mandelbrot(ctx, width, height);
+                }
+                // console.log(max_iterations)
             }
         }
         const input = document.querySelector('input');
